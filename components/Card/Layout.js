@@ -1,3 +1,12 @@
+import {
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withTiming,
+  withSpring,
+  runOnJS,
+} from "react-native-reanimated";
+
 export function getXLayout(pileOneArr, cardWidth, pileOneX) {
   "worklet";
 
@@ -23,16 +32,24 @@ export function getYLayout(
   // bottom: 12 <- in DraggableCards styles under cardList
   // top: 5 <- in Card styles under container
   const CARD_OFFSET_Y = 17;
-  console.log("Hello from Layout Y! ", pileY);
 
   return -viewHeight + pileY + CARD_OFFSET_Y + cardHeight;
 }
-
-export function getCardListLayout(cardBankArr) {
+// need to get index of card in cardBankArr and then use that index for offsetsArr[index].x = 66 * index (thats the card width * the place in the array it is)
+export function getCardListLayoutX(cardBankArr, offsetsArr, number) {
+  "worklet";
+  const CARD_WIDTH = 66;
+  const index = cardBankArr.indexOf(number);
+  return CARD_WIDTH * index;
+}
+export function getCardListLayoutY(cardBankArr) {
   "worklet";
   const CARD_WIDTH = 66;
   const numberOfCards = cardBankArr.length - 1;
-  const x = numberOfCards * CARD_WIDTH;
   const y = 0;
-  return { x, y };
+  return y;
+}
+
+export function reorderOffsets() {
+  console.log("Hello!");
 }

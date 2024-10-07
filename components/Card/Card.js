@@ -3,6 +3,7 @@ import { Text, View, Dimensions } from "react-native";
 import "react-native-gesture-handler";
 import Animated, {
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   withTiming,
   withSpring,
@@ -14,26 +15,45 @@ import {
   GestureHandlerRootView,
 } from "react-native-gesture-handler";
 
-import { getCardListLayout, getXLayout, getYLayout } from "./Layout.js";
+import {
+  getCardListLayoutX,
+  getCardListLayoutY,
+  getXLayout,
+  getYLayout,
+  reorderOffsets,
+} from "./Layout.js";
 
 import styles from "./styles.js";
 
 export default function Card(props) {
   const pressed = useSharedValue(false);
   const moved = useSharedValue(false); // not used
-  const offsetX = useSharedValue(0);
-  const offsetY = useSharedValue(0);
+  const isInPile = useDerivedValue(() => {
+    if (
+      props.pileOneArr.value.indexOf(props.number) !== -1 ||
+      props.pileTwoArr.value.indexOf(props.number) !== -1 ||
+      props.pileThreeArr.value.indexOf(props.number) !== -1 ||
+      props.pileFourArr.value.indexOf(props.number) !== -1
+    ) {
+      return true;
+    }
+    return false;
+  });
+  // const positionInArray = useDerivedValue(() => {
+  //   return props.cardBankArr.value.indexOf(props.number);
+  // });
   const cardIndex = props.number - 1;
 
-  // props.offsets.value[props.number].x (and y) is how we need to reference the offsets from here on out
-
-  // console.log("test: ", props.offsets.value[props.number].x);
-
   const CARD_WIDTH = 66;
+  const CARD_LEFT_MARGIN = 5;
+  const CARDLIST_LEFT_MARGIN = 20;
 
   const [cardLayout, setCardLayout] = useState();
   const [originalCardLayout, setOriginalCardLayout] = useState(null);
   const [loaded, setLoaded] = useState(false);
+
+  const offsetX = useSharedValue(props.offsetsArr.value[cardIndex].x);
+  const offsetY = useSharedValue(props.offsetsArr.value[cardIndex].y);
 
   function addToPile(flag) {
     "worklet";
@@ -306,49 +326,100 @@ export default function Card(props) {
     .onChange((event) => {
       offsetX.value += event.changeX;
       offsetY.value += event.changeY;
-
+      if (isInPile.value) {
+        // If the card is in a pile we don't want to account for it's original X layout (or y)
+        // ***don't delete yet but this might actually be unnecessary, everything seems to be working fine***
+      } else {
+        // If the card is NOT in a pile already (in the cardbank) then we DO want to account for it's original X layout when determining if it is inside a pile
+      }
+      // Pile One
       if (
-        offsetX.value -
-          (props.number - 1 * originalCardLayout.x) +
-          cardLayout.width / 2 >
+        offsetX.value +
+          cardLayout.width / 2 +
+          CARDLIST_LEFT_MARGIN +
+          CARD_LEFT_MARGIN >
           props.pileOneLayout.x &&
-        offsetX.value -
-          (props.number - 1 * originalCardLayout.x) +
-          cardLayout.width / 2 <
+        offsetX.value +
+          cardLayout.width / 2 +
+          CARDLIST_LEFT_MARGIN +
+          CARD_LEFT_MARGIN <
           props.pileOneLayout.x + props.pileOneLayout.width &&
         props.viewLayout.height - -offsetY.value - cardLayout.height / 2 >
           props.pileOneLayout.y &&
         props.viewLayout.height - -offsetY.value - cardLayout.height / 2 <
           props.pileOneLayout.y + props.pileOneLayout.height
       ) {
-        console.log("In Pile 1");
         addToPile(1);
         removeFromPile(1);
+        // Pile Two
+      } else if (
+        offsetX.value +
+          cardLayout.width / 2 +
+          CARDLIST_LEFT_MARGIN +
+          CARD_LEFT_MARGIN >
+          props.pileTwoLayout.x &&
+        offsetX.value +
+          cardLayout.width / 2 +
+          CARDLIST_LEFT_MARGIN +
+          CARD_LEFT_MARGIN <
+          props.pileTwoLayout.x + props.pileTwoLayout.width &&
+        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 >
+          props.pileTwoLayout.y &&
+        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 <
+          props.pileTwoLayout.y + props.pileTwoLayout.height
+      ) {
+        removeFromPile(2);
+        addToPile(2);
+        // Pile Three
+      } else if (
+        offsetX.value +
+          cardLayout.width / 2 +
+          CARDLIST_LEFT_MARGIN +
+          CARD_LEFT_MARGIN >
+          props.pileThreeLayout.x &&
+        offsetX.value +
+          cardLayout.width / 2 +
+          CARDLIST_LEFT_MARGIN +
+          CARD_LEFT_MARGIN <
+          props.pileThreeLayout.x + props.pileThreeLayout.width &&
+        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 >
+          props.pileThreeLayout.y &&
+        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 <
+          props.pileThreeLayout.y + props.pileThreeLayout.height
+      ) {
+        removeFromPile(3);
+        addToPile(3);
+        // Pile Four
+      } else if (
+        offsetX.value +
+          cardLayout.width / 2 +
+          CARDLIST_LEFT_MARGIN +
+          CARD_LEFT_MARGIN >
+          props.pileFourLayout.x &&
+        offsetX.value +
+          cardLayout.width / 2 +
+          CARDLIST_LEFT_MARGIN +
+          CARD_LEFT_MARGIN <
+          props.pileFourLayout.x + props.pileFourLayout.width &&
+        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 >
+          props.pileFourLayout.y &&
+        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 <
+          props.pileFourLayout.y + props.pileFourLayout.height
+      ) {
+        removeFromPile(4);
+        addToPile(4);
       } else {
-        addToPile(0);
+        // remove card from all other piles since it didn't land in any of them
+        addToPile(5);
         removeFromPile(0);
       }
     })
     .onEnd(() => {
       // Pile 1
-      if (
-        offsetX.value -
-          (props.number - 1 * originalCardLayout.x) +
-          cardLayout.width / 2 >
-          props.pileOneLayout.x &&
-        offsetX.value -
-          (props.number - 1 * originalCardLayout.x) +
-          cardLayout.width / 2 <
-          props.pileOneLayout.x + props.pileOneLayout.width &&
-        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 >
-          props.pileOneLayout.y &&
-        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 <
-          props.pileOneLayout.y + props.pileOneLayout.height
-      ) {
-        addToPile(1);
-        removeFromPile(1);
-        // updateCardPileOne();
-        // needs to snap into pile one then (and also be added to the players' hand)
+      // THERE IS NO NEED TO CHECK WHERE THE CARD IS IN .onEnd BECAUSE WE ARE DOING IT IN .onChange. INSTEAD WE SHOULD CHECK WHAT PILE ARRAY THE CARD IS IN AND SET IT'S OFFSET WITH useSpring() TO SNAP IT INTO PLACE!
+
+      // needs to snap into pile one then (and also be added to the players' hand)
+      if (props.pileOneArr.value.indexOf(props.number) !== -1) {
         offsetX.value = withSpring(
           getXLayout(
             props.pileOneArr.value,
@@ -366,23 +437,8 @@ export default function Card(props) {
             props.viewLayout.height
           )
         );
-        // Pile Two
-      } else if (
-        offsetX.value -
-          (props.number - 1 * cardLayout.x) +
-          cardLayout.width / 2 >
-          props.pileTwoLayout.x &&
-        offsetX.value -
-          (props.number - 1 * cardLayout.x) +
-          cardLayout.width / 2 <
-          props.pileTwoLayout.x + props.pileTwoLayout.width &&
-        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 >
-          props.pileTwoLayout.y &&
-        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 <
-          props.pileTwoLayout.y + props.pileTwoLayout.height
-      ) {
-        removeFromPile(2);
-        addToPile(2);
+        // Pile 2
+      } else if (props.pileTwoArr.value.indexOf(props.number) !== -1) {
         // updateCardPileOne();
         // needs to snap into pile one then (and also be added to the players' hand)
         offsetX.value = withSpring(
@@ -403,22 +459,7 @@ export default function Card(props) {
           )
         );
         // Pile Three
-      } else if (
-        offsetX.value -
-          (props.number - 1 * cardLayout.x) +
-          cardLayout.width / 2 >
-          props.pileThreeLayout.x &&
-        offsetX.value -
-          (props.number - 1 * cardLayout.x) +
-          cardLayout.width / 2 <
-          props.pileThreeLayout.x + props.pileThreeLayout.width &&
-        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 >
-          props.pileThreeLayout.y &&
-        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 <
-          props.pileThreeLayout.y + props.pileThreeLayout.height
-      ) {
-        removeFromPile(3);
-        addToPile(3);
+      } else if (props.pileThreeArr.value.indexOf(props.number) !== -1) {
         // updateCardPileOne();
         // needs to snap into pile one then (and also be added to the players' hand)
         offsetX.value = withSpring(
@@ -428,7 +469,6 @@ export default function Card(props) {
             props.pileThreeLayout.x
           )
         );
-        console.log("hiphip: ", props.viewLayout.height);
         offsetY.value = withSpring(
           getYLayout(
             props.pileThreeArr.value,
@@ -440,22 +480,7 @@ export default function Card(props) {
           )
         );
         // Pile Four
-      } else if (
-        offsetX.value -
-          (props.number - 1 * cardLayout.x) +
-          cardLayout.width / 2 >
-          props.pileFourLayout.x &&
-        offsetX.value -
-          (props.number - 1 * cardLayout.x) +
-          cardLayout.width / 2 <
-          props.pileFourLayout.x + props.pileFourLayout.width &&
-        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 >
-          props.pileFourLayout.y &&
-        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 <
-          props.pileFourLayout.y + props.pileFourLayout.height
-      ) {
-        removeFromPile(4);
-        addToPile(4);
+      } else if (props.pileFourArr.value.indexOf(props.number) !== -1) {
         // updateCardPileOne();
         // needs to snap into pile one then (and also be added to the players' hand)
         offsetX.value = withSpring(
@@ -477,15 +502,16 @@ export default function Card(props) {
         );
       } else {
         // remove card from all other piles since it didn't land in any of them
-        addToPile(5);
-        removeFromPile(0);
-
         // we need to get the layout for the card bank
-        const dock = getCardListLayout(props.cardBankArr.value);
-        offsetX.value = withSpring(dock.x);
-        offsetY.value = withSpring(dock.y);
-        // offsetX.value = withSpring(0);
-        // offsetY.value = withSpring(0);
+        // const x = getCardListLayoutX(
+        //   props.cardBankArr.value,
+        //   props.offsetsArr.value,
+        //   props.number
+        // );
+        const x = originalCardLayout.x - CARD_LEFT_MARGIN;
+        const y = getCardListLayoutY(props.cardBankArr.value);
+        offsetX.value = withSpring(x);
+        offsetY.value = withSpring(y);
       }
     })
     .onFinalize(() => {
