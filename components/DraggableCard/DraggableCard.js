@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Text, View, StyleSheet } from "react-native";
-import { useSharedValue } from "react-native-reanimated";
+import Animated, { useSharedValue } from "react-native-reanimated";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import Card from "../Card/Card.js";
 import NumberCardSelector from "../NumberCardSelector/NumberCardSelector.js";
+// import { reorderOffsets } from "../Card/Layout.js"; // I don't think gets called here
 
 import styles from "./styles.js";
 
@@ -16,7 +17,9 @@ export default function DraggableCard() {
   const [pileThreeLayout, setPileThreeLayout] = useState();
   const [pileFourLayout, setPileFourLayout] = useState();
   const [cardBankLayout, setCardBankLayout] = useState();
+  const [discardLayout, setDiscardLayout] = useState();
   const [viewLayout, setViewLayout] = useState();
+  const [ready, setReady] = useState(false);
 
   const pileOneArr = useSharedValue([]);
   const pileTwoArr = useSharedValue([]);
@@ -24,7 +27,7 @@ export default function DraggableCard() {
   const pileFourArr = useSharedValue([]);
   const cardBankArr = useSharedValue([]);
 
-  const offsetsArr = useSharedValue([]);
+  const offsetsArr = useSharedValue([{ x: 0, y: 0 }]);
 
   const positions = useSharedValue([]);
 
@@ -40,11 +43,14 @@ export default function DraggableCard() {
       });
       offsetsArr.modify((value) => {
         "worklet";
-        value.push({ x: 0, y: 0 });
+        value.push({ x: CARD_WIDTH * numberOfCards, y: 0 });
         return value;
       });
     }
-  }, [numberOfCards, cardBankLayout]);
+    setReady(true);
+  }, [numberOfCards, discardLayout, cardBankLayout]);
+
+  useEffect(() => {}, [discardLayout]);
 
   function getCards() {
     const cards = [];
@@ -84,6 +90,35 @@ export default function DraggableCard() {
         }}
         style={styles.container}
       >
+        {ready && (
+          <Animated.View
+            onLayout={(event) => {
+              event.target.measure((x, y, width, height) => {
+                const t = { x, y, width, height };
+                setDiscardLayout(t);
+              });
+            }}
+            style={styles.cardList}
+          >
+            {console.log("discard pile checkpoint: ", offsetsArr.value)}
+            {/* <Card
+              number={0}
+              pileOneLayout={pileOneLayout}
+              pileTwoLayout={pileTwoLayout}
+              pileThreeLayout={pileThreeLayout}
+              pileFourLayout={pileFourLayout}
+              cardBankLayout={cardBankLayout}
+              viewLayout={viewLayout}
+              pileOneArr={pileOneArr}
+              pileTwoArr={pileTwoArr}
+              pileThreeArr={pileThreeArr}
+              pileFourArr={pileFourArr}
+              cardBankArr={cardBankArr}
+              offsetsArr={offsetsArr}
+              key={0}
+            /> */}
+          </Animated.View>
+        )}
         <NumberCardSelector
           numberOfCards={numberOfCards}
           setNumberOfCards={setNumberOfCards}
@@ -130,18 +165,21 @@ export default function DraggableCard() {
         />
         <View style={styles.test} />
         <View style={styles.testtwo} />
-        <View
-          onLayout={(event) => {
-            event.target.measure((x, y, width, height, pageX, pageY) => {
-              const t = { x, y, width, height };
-              // setCardList(getCards);
-              setCardBankLayout(t);
-            });
-          }}
-          style={styles.cardList}
-        >
-          {cardList.map((card) => card)}
-        </View>
+        {ready && (
+          <Animated.View
+            onLayout={(event) => {
+              event.target.measure((x, y, width, height, pageX, pageY) => {
+                const t = { x, y, width, height };
+                // setCardList(getCards);
+                setCardBankLayout(t);
+                setReady(true);
+              });
+            }}
+            style={styles.cardList}
+          >
+            {cardList.map((card) => card)}
+          </Animated.View>
+        )}
       </View>
     </GestureHandlerRootView>
   );
