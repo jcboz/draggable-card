@@ -7,7 +7,7 @@ import {
   runOnJS,
 } from "react-native-reanimated";
 
-export function getXLayout(pileOneArr, cardWidth, pileOneX) {
+export function getXLayout(pileOneArr, cardWidth, pileOneX, cardIdentifier) {
   "worklet";
 
   // left: 20 <- in DraggableCard styles under cardList
@@ -15,8 +15,13 @@ export function getXLayout(pileOneArr, cardWidth, pileOneX) {
   // ^ need to account for these values when computing X value
   const CARD_OFFSET_X = 25; // ^^^
   const numberOfCards = pileOneArr.length - 1;
-
-  return numberOfCards * cardWidth + pileOneX - CARD_OFFSET_X; //(numberOfCards - 1) * cardWidth + ;
+  // if (pileOneArr.indexOf(cardIdentifier) !== -1) {
+  //   return (
+  //     pileOneArr.indexOf(cardIdentifier) * cardWidth + pileOneX - CARD_OFFSET_X
+  //   );
+  // }
+  // return numberOfCards * cardWidth + pileOneX - CARD_OFFSET_X; //(numberOfCards - 1) * cardWidth + ;
+  return pileOneArr.indexOf(cardIdentifier) * 66 + pileOneX - CARD_OFFSET_X;
 }
 
 export function getYLayout(
@@ -50,6 +55,21 @@ export function getCardListLayoutY(cardBankArr) {
   return y;
 }
 
-export function reorderOffsets() {
-  console.log("Hello!");
+export function getXReorder(pileOneArr, cardIdentifier, pileOneX) {
+  "worklet";
+
+  // left: 20 <- in DraggableCard styles under cardList
+  // left: 5 <- in Card styles under container
+  // ^ need to account for these values when computing X value
+  const CARD_OFFSET_X = 25; // ^^^
+  const cardWidth = 66;
+  const cardIndex = pileOneArr.indexOf(cardIdentifier);
+
+  return cardIndex * cardWidth + pileOneX - CARD_OFFSET_X;
+}
+
+export function getYReorder() {
+  "worklet";
+
+  return 30;
 }
