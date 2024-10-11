@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Text, View, StyleSheet } from "react-native";
-import Animated, { useSharedValue } from "react-native-reanimated";
+import Animated, {
+  useSharedValue,
+  useAnimatedReaction,
+} from "react-native-reanimated";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import Card from "../Card/Card.js";
@@ -27,9 +30,7 @@ export default function DraggableCard() {
   const pileFourArr = useSharedValue([]);
   const cardBankArr = useSharedValue([]);
 
-  const offsetsArr = useSharedValue([{ x: 0, y: 0 }]);
-
-  const positions = useSharedValue([]);
+  const offsetsArr = useSharedValue([{ x: 0, y: 0, cardID: 0 }]);
 
   const CARD_WIDTH = 66;
 
@@ -43,14 +44,16 @@ export default function DraggableCard() {
       });
       offsetsArr.modify((value) => {
         "worklet";
-        value.push({ x: CARD_WIDTH * numberOfCards, y: 0 });
+        value.push({
+          x: CARD_WIDTH * numberOfCards,
+          y: 0,
+          cardID: numberOfCards,
+        });
         return value;
       });
     }
     setReady(true);
   }, [numberOfCards, discardLayout, cardBankLayout]);
-
-  useEffect(() => {}, [discardLayout]);
 
   function getCards() {
     const cards = [];
@@ -102,7 +105,7 @@ export default function DraggableCard() {
           >
             {console.log("discard pile checkpoint: ", offsetsArr.value)}
             {/* <Card
-              number={0}
+              number={9}
               pileOneLayout={pileOneLayout}
               pileTwoLayout={pileTwoLayout}
               pileThreeLayout={pileThreeLayout}
@@ -115,7 +118,7 @@ export default function DraggableCard() {
               pileFourArr={pileFourArr}
               cardBankArr={cardBankArr}
               offsetsArr={offsetsArr}
-              key={0}
+              key={9}
             /> */}
           </Animated.View>
         )}
