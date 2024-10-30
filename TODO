@@ -1,0 +1,13 @@
+10/29/2024
+  Just a list of a last things to do if returning to this project. At this point I feel confident I have everything that 
+  I need in order to return to developing Five Crown and don't see this demo as the best use of my time. But if for whatever
+  reason I do return to this demo, here is a list of things to do to make it "complete":
+
+    1. Have cards dynamically place themselves when dropped in a pile based on how many cards are already in the pile
+      - for example, when you drop a fourth card in, it should go below the top three cards. And if there are more than 6 cards in the card bank, the should overlap each other to fit all. This also just generally includes card placement fixing
+    
+    2. There are some flaws in the logic for hasCardBeenDiscarded and hasCardBeenPicked. For one, if you remove the 1 and try to put it back, it will not let you pick the deck card again. This is because the discardArr is not dynamic and preloads with 1 so 1 is never removed from the discardArr with removeFromPile() and no card is ever added with addToPile(). This is easily fixed by adding flags for add and remove but honestly don't feel like doing it right now
+
+    3. I think it'd be nice to add a 'clear' or 'reset' button to the demo to restart it. 
+
+    4. This will probably never happen but I'd also like to the randomization of cards when you reset the demo. Oh well.

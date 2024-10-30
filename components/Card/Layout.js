@@ -73,3 +73,23 @@ export function getYReorder() {
 
   return 30;
 }
+
+export function getDiscardXPosition(xLayout) {
+  "worklet";
+  return xLayout - 21;
+}
+
+export function getDiscardYPosition(
+  yLayout,
+  cardHeight,
+  pileHeight,
+  viewHeight
+) {
+  "worklet";
+
+  // bottom: 12 <- in DraggableCards styles under cardList
+  // top: 5 <- in Card styles under container
+  const CARD_OFFSET_Y = 20;
+
+  return -viewHeight + yLayout + CARD_OFFSET_Y + cardHeight;
+}

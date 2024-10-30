@@ -22,12 +22,15 @@ import {
   getYLayout,
   getXReorder,
   getYReorder,
+  getDiscardXPosition,
+  getDiscardYPosition,
 } from "./Layout.js";
 
 import styles from "./styles.js";
 
 export default function Card(props) {
   const pressed = useSharedValue(false);
+  const cantPress = useSharedValue(false);
   const moved = useSharedValue(false); // not used
   const isInPile = useDerivedValue(() => {
     if (
@@ -40,6 +43,13 @@ export default function Card(props) {
     }
     return false;
   });
+  const isInCardBank = useDerivedValue(() => {
+    if (props.cardBankArr.value.indexOf(props.number) !== -1) {
+      return true;
+    }
+    return false;
+  });
+
   // const positionInArray = useDerivedValue(() => {
   //   return props.cardBankArr.value.indexOf(props.number);
   // });
@@ -125,7 +135,9 @@ export default function Card(props) {
       "\nPile 4: ",
       props.pileFourArr.value,
       "\nCard Bank: ",
-      props.cardBankArr.value
+      props.cardBankArr.value,
+      "\nDiscard Pile: ",
+      props.discardPileArr.value
     );
   }
 
@@ -333,218 +345,249 @@ export default function Card(props) {
 
   const tap = Gesture.Pan()
     .onBegin(() => {
-      pressed.value = true;
+      if (
+        props.hasCardBeenPicked.value &&
+        props.number == 1 &&
+        isInPile.value === false &&
+        isInCardBank.value === false
+      ) {
+        return;
+      } else {
+        pressed.value = true;
+      }
     })
     .onChange((event) => {
-      offsetX.value += event.changeX;
-      offsetY.value += event.changeY;
-      if (isInPile.value) {
-        // If the card is in a pile we don't want to account for it's original X layout (or y)
-        // ***don't delete yet but this might actually be unnecessary, everything seems to be working fine***
-      } else {
-        // If the card is NOT in a pile already (in the cardbank) then we DO want to account for it's original X layout when determining if it is inside a pile
-      }
-      // Pile One
+      console.log(
+        "has card been picked? (from card.js): ",
+        props.hasCardBeenPicked.value
+      );
+      console.log("what card been picked? (from card.js): ", props.number == 1);
+      console.log("is it inPile? (from card.js): ", isInPile.value);
+      console.log("is it inCardBank? (from card.js): ", isInCardBank.value);
       if (
-        offsetX.value +
-          cardLayout.width / 2 +
-          CARDLIST_LEFT_MARGIN +
-          CARD_LEFT_MARGIN >
-          props.pileOneLayout.x &&
-        offsetX.value +
-          cardLayout.width / 2 +
-          CARDLIST_LEFT_MARGIN +
-          CARD_LEFT_MARGIN <
-          props.pileOneLayout.x + props.pileOneLayout.width &&
-        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 >
-          props.pileOneLayout.y &&
-        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 <
-          props.pileOneLayout.y + props.pileOneLayout.height
+        props.hasCardBeenPicked.value &&
+        props.number == 1 &&
+        isInPile.value === false &&
+        isInCardBank.value === false
       ) {
-        // this nested for loop is responsible for obtaining the offsets within the pile one array based on what cars are in there
-        // might be a cleaner way to do all this, but this was the best way to do it with how I had it set up
-        let pileOneArrOffsets = [];
-        for (let i = 0; i < props.offsetsArr.value.length; i++) {
-          for (let j = 0; j < props.pileOneArr.value.length; j++) {
-            if (props.offsetsArr.value[i].cardID == props.pileOneArr.value[j]) {
-              console.log("loop so nice I did it twice");
-              pileOneArrOffsets.push(props.offsetsArr.value[i].x);
-            }
-          }
-        }
-        // this function is responsible for figuring out where the card is being hovered in the pile one array and where it should be inserted in the array
-        // obtaining this info allows us to reorder the array, and then use that newly reordered array to reposition the cards in the pile
-        let indexToInsertAt = 0;
-        console.log("pileOneArrOffsets: ", pileOneArrOffsets);
-        for (let i = 0; i < pileOneArrOffsets.length; i++) {
-          if (offsetX.value + 33 < pileOneArrOffsets[i]) {
-            // starting from the start of the array (cards in the pile), we check if the x value of offset of the card
-            // being moved is greater than the x value of each card offset in pile one. If it is greater, we move one card to the right
-            // if we reach a card where the offset.x is greater than our card's offsetX value, then we know to stop and insert the card there
-            indexToInsertAt = i;
-            break;
-          }
-          if (i == pileOneArrOffsets.length - 1) {
-            console.log("or here");
-            // we're at the end of the pile which means the user is holding the card at the end of the array so we can just add it onto the end of the array
-            indexToInsertAt = i;
-            break;
-          }
-        }
-        console.log("index to insert at: ", indexToInsertAt);
-        addToPile(1, indexToInsertAt);
-        removeFromPile(1);
-        // Pile Two
-      } else if (
-        offsetX.value +
-          cardLayout.width / 2 +
-          CARDLIST_LEFT_MARGIN +
-          CARD_LEFT_MARGIN >
-          props.pileTwoLayout.x &&
-        offsetX.value +
-          cardLayout.width / 2 +
-          CARDLIST_LEFT_MARGIN +
-          CARD_LEFT_MARGIN <
-          props.pileTwoLayout.x + props.pileTwoLayout.width &&
-        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 >
-          props.pileTwoLayout.y &&
-        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 <
-          props.pileTwoLayout.y + props.pileTwoLayout.height
-      ) {
-        let pileTwoArrOffsets = [];
-        for (let i = 0; i < props.offsetsArr.value.length; i++) {
-          for (let j = 0; j < props.pileTwoArr.value.length; j++) {
-            if (props.offsetsArr.value[i].cardID == props.pileTwoArr.value[j]) {
-              pileTwoArrOffsets.push(props.offsetsArr.value[i].x);
-            }
-          }
-        }
-        let indexToInsertAt = 0;
-        console.log("pileTwoArrOffsets: ", pileTwoArrOffsets);
-        for (let i = 0; i < pileTwoArrOffsets.length; i++) {
-          if (
-            offsetX.value +
-              33 -
-              props.pileTwoLayout.width +
-              CARD_LEFT_MARGIN +
-              CARDLIST_LEFT_MARGIN <
-            pileTwoArrOffsets[i]
-          ) {
-            indexToInsertAt = i;
-            break;
-          }
-          if (i == pileTwoArrOffsets.length - 1) {
-            indexToInsertAt = i;
-            break;
-          }
-        }
-        console.log("index to insert at: ", indexToInsertAt);
-        addToPile(2, indexToInsertAt);
-        removeFromPile(2);
-        // Pile Three
-      } else if (
-        offsetX.value +
-          cardLayout.width / 2 +
-          CARDLIST_LEFT_MARGIN +
-          CARD_LEFT_MARGIN >
-          props.pileThreeLayout.x &&
-        offsetX.value +
-          cardLayout.width / 2 +
-          CARDLIST_LEFT_MARGIN +
-          CARD_LEFT_MARGIN <
-          props.pileThreeLayout.x + props.pileThreeLayout.width &&
-        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 >
-          props.pileThreeLayout.y &&
-        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 <
-          props.pileThreeLayout.y + props.pileThreeLayout.height
-      ) {
-        let pileThreeArrOffsets = [];
-        for (let i = 0; i < props.offsetsArr.value.length; i++) {
-          for (let j = 0; j < props.pileThreeArr.value.length; j++) {
-            if (
-              props.offsetsArr.value[i].cardID == props.pileThreeArr.value[j]
-            ) {
-              pileThreeArrOffsets.push(props.offsetsArr.value[i].x);
-            }
-          }
-        }
-        let indexToInsertAt = 0;
-        console.log("pileThreeArrOffsets: ", pileThreeArrOffsets);
-        for (let i = 0; i < pileThreeArrOffsets.length; i++) {
-          if (offsetX.value + 33 < pileThreeArrOffsets[i]) {
-            indexToInsertAt = i;
-            break;
-          }
-          if (i == pileThreeArrOffsets.length - 1) {
-            indexToInsertAt = i;
-            break;
-          }
-        }
-        console.log("index to insert at: ", indexToInsertAt);
-        addToPile(3, indexToInsertAt);
-        removeFromPile(3);
-        // Pile Four
-      } else if (
-        offsetX.value +
-          cardLayout.width / 2 +
-          CARDLIST_LEFT_MARGIN +
-          CARD_LEFT_MARGIN >
-          props.pileFourLayout.x &&
-        offsetX.value +
-          cardLayout.width / 2 +
-          CARDLIST_LEFT_MARGIN +
-          CARD_LEFT_MARGIN <
-          props.pileFourLayout.x + props.pileFourLayout.width &&
-        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 >
-          props.pileFourLayout.y &&
-        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 <
-          props.pileFourLayout.y + props.pileFourLayout.height
-      ) {
-        let pileFourArrOffsets = [];
-        for (let i = 0; i < props.offsetsArr.value.length; i++) {
-          for (let j = 0; j < props.pileFourArr.value.length; j++) {
-            if (
-              props.offsetsArr.value[i].cardID == props.pileFourArr.value[j]
-            ) {
-              pileFourArrOffsets.push(props.offsetsArr.value[i].x);
-            }
-          }
-        }
-        let indexToInsertAt = 0;
-        console.log("pileFourArrOffsets: ", pileFourArrOffsets);
-        for (let i = 0; i < pileFourArrOffsets.length; i++) {
-          if (
-            offsetX.value + 33 - props.pileFourLayout.width + CARD_LEFT_MARGIN <
-            pileFourArrOffsets[i]
-          ) {
-            indexToInsertAt = i;
-            break;
-          }
-          if (i == pileFourArrOffsets.length - 1) {
-            indexToInsertAt = i;
-            break;
-          }
-        }
-        console.log("index to insert at: ", indexToInsertAt);
-        addToPile(4, indexToInsertAt);
-        removeFromPile(4);
+        // do nothing
+        console.log("is this ever running?");
+        console.log(props.cardBankArr.value);
+        return;
       } else {
-        // remove card from all other piles since it didn't land in any of them
-        addToPile(5);
-        removeFromPile(0);
+        console.log("its getting changed?");
+        offsetX.value += event.changeX;
+        offsetY.value += event.changeY;
+        if (isInPile.value) {
+          // If the card is in a pile we don't want to account for it's original X layout (or y)
+          // ***don't delete yet but this might actually be unnecessary, everything seems to be working fine***
+        } else {
+          // If the card is NOT in a pile already (in the cardbank) then we DO want to account for it's original X layout when determining if it is inside a pile
+        }
+        // Pile One
+        if (
+          offsetX.value +
+            cardLayout.width / 2 +
+            CARDLIST_LEFT_MARGIN +
+            CARD_LEFT_MARGIN >
+            props.pileOneLayout.x &&
+          offsetX.value +
+            cardLayout.width / 2 +
+            CARDLIST_LEFT_MARGIN +
+            CARD_LEFT_MARGIN <
+            props.pileOneLayout.x + props.pileOneLayout.width &&
+          props.viewLayout.height - -offsetY.value - cardLayout.height / 2 >
+            props.pileOneLayout.y &&
+          props.viewLayout.height - -offsetY.value - cardLayout.height / 2 <
+            props.pileOneLayout.y + props.pileOneLayout.height
+        ) {
+          // this nested for loop is responsible for obtaining the offsets within the pile one array based on what cars are in there
+          // might be a cleaner way to do all this, but this was the best way to do it with how I had it set up
+          let pileOneArrOffsets = [];
+          for (let i = 0; i < props.offsetsArr.value.length; i++) {
+            for (let j = 0; j < props.pileOneArr.value.length; j++) {
+              if (
+                props.offsetsArr.value[i].cardID == props.pileOneArr.value[j]
+              ) {
+                console.log("loop so nice I did it twice");
+                pileOneArrOffsets.push(props.offsetsArr.value[i].x);
+              }
+            }
+          }
+          // this function is responsible for figuring out where the card is being hovered in the pile one array and where it should be inserted in the array
+          // obtaining this info allows us to reorder the array, and then use that newly reordered array to reposition the cards in the pile
+          let indexToInsertAt = 0;
+          console.log("pileOneArrOffsets: ", pileOneArrOffsets);
+          for (let i = 0; i < pileOneArrOffsets.length; i++) {
+            if (offsetX.value + 33 < pileOneArrOffsets[i]) {
+              // starting from the start of the array (cards in the pile), we check if the x value of offset of the card
+              // being moved is greater than the x value of each card offset in pile one. If it is greater, we move one card to the right
+              // if we reach a card where the offset.x is greater than our card's offsetX value, then we know to stop and insert the card there
+              indexToInsertAt = i;
+              break;
+            }
+            if (i == pileOneArrOffsets.length - 1) {
+              console.log("or here");
+              // we're at the end of the pile which means the user is holding the card at the end of the array so we can just add it onto the end of the array
+              indexToInsertAt = i;
+              break;
+            }
+          }
+          console.log("index to insert at: ", indexToInsertAt);
+          addToPile(1, indexToInsertAt);
+          removeFromPile(1);
+          // Pile Two
+        } else if (
+          offsetX.value +
+            cardLayout.width / 2 +
+            CARDLIST_LEFT_MARGIN +
+            CARD_LEFT_MARGIN >
+            props.pileTwoLayout.x &&
+          offsetX.value +
+            cardLayout.width / 2 +
+            CARDLIST_LEFT_MARGIN +
+            CARD_LEFT_MARGIN <
+            props.pileTwoLayout.x + props.pileTwoLayout.width &&
+          props.viewLayout.height - -offsetY.value - cardLayout.height / 2 >
+            props.pileTwoLayout.y &&
+          props.viewLayout.height - -offsetY.value - cardLayout.height / 2 <
+            props.pileTwoLayout.y + props.pileTwoLayout.height
+        ) {
+          let pileTwoArrOffsets = [];
+          for (let i = 0; i < props.offsetsArr.value.length; i++) {
+            for (let j = 0; j < props.pileTwoArr.value.length; j++) {
+              if (
+                props.offsetsArr.value[i].cardID == props.pileTwoArr.value[j]
+              ) {
+                pileTwoArrOffsets.push(props.offsetsArr.value[i].x);
+              }
+            }
+          }
+          let indexToInsertAt = 0;
+          console.log("pileTwoArrOffsets: ", pileTwoArrOffsets);
+          for (let i = 0; i < pileTwoArrOffsets.length; i++) {
+            if (
+              offsetX.value +
+                33 -
+                props.pileTwoLayout.width +
+                CARD_LEFT_MARGIN +
+                CARDLIST_LEFT_MARGIN <
+              pileTwoArrOffsets[i]
+            ) {
+              indexToInsertAt = i;
+              break;
+            }
+            if (i == pileTwoArrOffsets.length - 1) {
+              indexToInsertAt = i;
+              break;
+            }
+          }
+          console.log("index to insert at: ", indexToInsertAt);
+          addToPile(2, indexToInsertAt);
+          removeFromPile(2);
+          // Pile Three
+        } else if (
+          offsetX.value +
+            cardLayout.width / 2 +
+            CARDLIST_LEFT_MARGIN +
+            CARD_LEFT_MARGIN >
+            props.pileThreeLayout.x &&
+          offsetX.value +
+            cardLayout.width / 2 +
+            CARDLIST_LEFT_MARGIN +
+            CARD_LEFT_MARGIN <
+            props.pileThreeLayout.x + props.pileThreeLayout.width &&
+          props.viewLayout.height - -offsetY.value - cardLayout.height / 2 >
+            props.pileThreeLayout.y &&
+          props.viewLayout.height - -offsetY.value - cardLayout.height / 2 <
+            props.pileThreeLayout.y + props.pileThreeLayout.height
+        ) {
+          let pileThreeArrOffsets = [];
+          for (let i = 0; i < props.offsetsArr.value.length; i++) {
+            for (let j = 0; j < props.pileThreeArr.value.length; j++) {
+              if (
+                props.offsetsArr.value[i].cardID == props.pileThreeArr.value[j]
+              ) {
+                pileThreeArrOffsets.push(props.offsetsArr.value[i].x);
+              }
+            }
+          }
+          let indexToInsertAt = 0;
+          console.log("pileThreeArrOffsets: ", pileThreeArrOffsets);
+          for (let i = 0; i < pileThreeArrOffsets.length; i++) {
+            if (offsetX.value + 33 < pileThreeArrOffsets[i]) {
+              indexToInsertAt = i;
+              break;
+            }
+            if (i == pileThreeArrOffsets.length - 1) {
+              indexToInsertAt = i;
+              break;
+            }
+          }
+          console.log("index to insert at: ", indexToInsertAt);
+          addToPile(3, indexToInsertAt);
+          removeFromPile(3);
+          // Pile Four
+        } else if (
+          offsetX.value +
+            cardLayout.width / 2 +
+            CARDLIST_LEFT_MARGIN +
+            CARD_LEFT_MARGIN >
+            props.pileFourLayout.x &&
+          offsetX.value +
+            cardLayout.width / 2 +
+            CARDLIST_LEFT_MARGIN +
+            CARD_LEFT_MARGIN <
+            props.pileFourLayout.x + props.pileFourLayout.width &&
+          props.viewLayout.height - -offsetY.value - cardLayout.height / 2 >
+            props.pileFourLayout.y &&
+          props.viewLayout.height - -offsetY.value - cardLayout.height / 2 <
+            props.pileFourLayout.y + props.pileFourLayout.height
+        ) {
+          let pileFourArrOffsets = [];
+          for (let i = 0; i < props.offsetsArr.value.length; i++) {
+            for (let j = 0; j < props.pileFourArr.value.length; j++) {
+              if (
+                props.offsetsArr.value[i].cardID == props.pileFourArr.value[j]
+              ) {
+                pileFourArrOffsets.push(props.offsetsArr.value[i].x);
+              }
+            }
+          }
+          let indexToInsertAt = 0;
+          console.log("pileFourArrOffsets: ", pileFourArrOffsets);
+          for (let i = 0; i < pileFourArrOffsets.length; i++) {
+            if (
+              offsetX.value +
+                33 -
+                props.pileFourLayout.width +
+                CARD_LEFT_MARGIN <
+              pileFourArrOffsets[i]
+            ) {
+              indexToInsertAt = i;
+              break;
+            }
+            if (i == pileFourArrOffsets.length - 1) {
+              indexToInsertAt = i;
+              break;
+            }
+          }
+          console.log("index to insert at: ", indexToInsertAt);
+          addToPile(4, indexToInsertAt);
+          removeFromPile(4);
+        } else {
+          // remove card from all other piles since it didn't land in any of them
+          addToPile(5);
+          removeFromPile(0);
+        }
+        if (props.number == 1) {
+          props.hasCardBeenPicked.value = true;
+        }
       }
     })
     .onEnd(() => {
       // Pile 1
       // THERE IS NO NEED TO CHECK WHERE THE CARD IS IN .onEnd BECAUSE WE ARE DOING IT IN .onChange. INSTEAD WE SHOULD CHECK WHAT PILE ARRAY THE CARD IS IN AND SET IT'S OFFSET WITH useSpring() TO SNAP IT INTO PLACE!
-
-      // needs to snap into pile one then (and also be added to the players' hand)
-      // offsetX.value = getXLayout(
-      //   props.pileOneArr.value,
-      //   cardLayout.width,
-      //   props.pileOneLayout.x,
-      //   props.number
-      // );
       // I think everything in this conditional can be deleted. offsetY.value doesn't determine the change anymore, translateY in useDerivedValue does. We just need to set offsetY.value to something to update the app on where the card is on the screen now
       if (props.pileOneArr.value.indexOf(props.number) !== -1) {
         offsetY.value = withSpring(
@@ -597,6 +640,39 @@ export default function Card(props) {
             props.viewLayout.height
           )
         );
+        // Discard Pile
+      } else if (
+        offsetX.value +
+          cardLayout.width / 2 +
+          CARDLIST_LEFT_MARGIN +
+          CARD_LEFT_MARGIN >
+          props.discardLayout.x &&
+        offsetX.value +
+          cardLayout.width / 2 +
+          CARDLIST_LEFT_MARGIN +
+          CARD_LEFT_MARGIN <
+          props.discardLayout.x + props.discardLayout.width &&
+        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 >
+          props.discardLayout.y &&
+        props.viewLayout.height - -offsetY.value - cardLayout.height / 2 <
+          props.discardLayout.y + props.discardLayout.height &&
+        props.hasCardBeenPicked.value &&
+        !props.hasCardBeenDiscarded.value
+      ) {
+        const x = getDiscardXPosition(props.discardLayout.x);
+        const y = getDiscardYPosition(
+          props.discardLayout.y,
+          cardLayout.height,
+          props.discardLayout.height,
+          props.viewLayout.height
+        );
+        offsetX.value = withSpring(x);
+        offsetY.value = withSpring(y);
+        // how can we add a check to make sure that '1' isn't already number in the discard pile
+        if (props.number == 1 && props.discardPileArr.value != 1) {
+          props.hasCardBeenPicked.value = false;
+        }
+        props.hasCardBeenDiscarded.value = true;
       } else {
         // remove card from all other piles since it didn't land in any of them
         const x = originalCardLayout.x - CARD_LEFT_MARGIN;
@@ -696,7 +772,7 @@ export default function Card(props) {
   });
 
   const animatedStyles = useAnimatedStyle(() => ({
-    borderWidth: pressed.value ? 5 : 0,
+    borderWidth: pressed.value || cantPress.value ? 5 : 0,
     transform: [
       { translateX: translateX.value },
       { translateY: translateY.value },
