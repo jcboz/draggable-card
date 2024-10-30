@@ -51,7 +51,6 @@ export default function DraggableCard() {
     { x: 0, y: 0, cardID: 0 },
     { x: 66, y: 0, cardID: 0 },
     { x: 132, y: 0, cardID: 0 },
-    { x: 79, y: -493, cardID: 0 },
   ]);
 
   const CARD_WIDTH = 66;

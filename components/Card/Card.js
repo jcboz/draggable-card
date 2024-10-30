@@ -675,6 +675,13 @@ export default function Card(props) {
         props.hasCardBeenDiscarded.value = true;
       } else {
         // remove card from all other piles since it didn't land in any of them
+        console.log("burba");
+        console.log(props.hasCardBeenPicked.value);
+        console.log(props.hasCardBeenPicked.value);
+        if (props.hasCardBeenPicked.value && props.number == 1) {
+          console.log("new burba");
+          return;
+        }
         const x = originalCardLayout.x - CARD_LEFT_MARGIN;
         const y = getCardListLayoutY(props.cardBankArr.value);
         offsetX.value = withSpring(x);
